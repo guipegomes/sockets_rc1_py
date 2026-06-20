@@ -22,13 +22,11 @@ def receber_mensagens(sock):
         try:
             mensagem = sock.recv(1024).decode("utf-8")
             if not mensagem:
-                # Servidor fechou a conexão
                 print("[CLIENTE] Conexão encerrada pelo servidor.")
                 break
             print(mensagem)
 
         except Exception:
-            # Conexão perdida inesperadamente
             print("[CLIENTE] Conexão perdida.")
             break
 
@@ -37,8 +35,8 @@ def receber_mensagens(sock):
 # Fica em loop lendo o input do usuário e mandando pro servidor
 def enviar_mensagens(sock):
     """
-    Executada na thread principal (ou em outra thread).
     Lê o input do usuário e envia ao servidor.
+    Também interpreta /sair para encerrar o cliente localmente.
 
     Parâmetros:
         sock (socket): socket conectado ao servidor
@@ -50,8 +48,13 @@ def enviar_mensagens(sock):
                 continue
             sock.send(mensagem.encode("utf-8"))
 
+            # Encerra o cliente após enviar /sair ao servidor
+            if mensagem.strip().lower() == "/sair":
+                break
+
         except (EOFError, KeyboardInterrupt):
             print("\n[CLIENTE] Encerrando...")
+            sock.send("/sair".encode("utf-8"))
             break
 
         except Exception as e:
@@ -62,8 +65,8 @@ def enviar_mensagens(sock):
 # Inicialização do cliente
 def iniciar_cliente():
     """
-    Conecta ao servidor e sobe as threads de envio e recebimento.
-    O fluxo de entrada (apelido e sala) será implementado na Parte 3.
+    Conecta ao servidor, realiza o fluxo de entrada (apelido e sala)
+    e sobe as threads de envio e recebimento.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -71,8 +74,18 @@ def iniciar_cliente():
         sock.connect((HOST, PORT))
         print(f"[CLIENTE] Conectado ao servidor {HOST}:{PORT}\n")
 
-        # TODO (Parte 3): receber prompt de apelido do servidor e responder
-        # TODO (Parte 3): receber prompt de sala do servidor e responder
+        # Fluxo de entrada: recebe prompts do servidor e responde
+        # O servidor envia "Digite seu apelido: " e aguarda a resposta
+        prompt_apelido = sock.recv(1024).decode("utf-8")
+        print(prompt_apelido, end="", flush=True)
+        apelido = input()
+        sock.send(apelido.encode("utf-8"))
+
+        # O servidor envia a lista de salas e pede para escolher uma
+        prompt_sala = sock.recv(1024).decode("utf-8")
+        print(prompt_sala, end="", flush=True)
+        sala = input()
+        sock.send(sala.encode("utf-8"))
 
         # Thread de recebimento roda em segundo plano (daemon)
         thread_recv = threading.Thread(
