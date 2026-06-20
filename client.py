@@ -1,5 +1,5 @@
 # client.py — Cliente TCP do Chat
-
+#teste alteração
 import socket
 import threading
 
